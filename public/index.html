@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Photo Gallery</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+
+    /* NAV */
+    nav {
+      background: #1a1a2e; color: white;
+      padding: 14px 32px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    nav h1 { font-size: 1.3rem; }
+    nav .user-info { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; }
+    nav button {
+      background: #e74c3c; color: white; border: none;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    }
+
+    /* PAGES */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* AUTH */
+    .auth-container {
+      max-width: 400px; margin: 80px auto;
+      background: white; border-radius: 12px;
+      padding: 40px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .auth-container h2 { margin-bottom: 24px; text-align: center; color: #1a1a2e; }
+    .auth-container input {
+      width: 100%; padding: 10px 14px; margin-bottom: 14px;
+      border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem;
+    }
+    .auth-container button.primary {
+      width: 100%; padding: 11px; background: #1a1a2e;
+      color: white; border: none; border-radius: 8px;
+      font-size: 1rem; cursor: pointer; margin-bottom: 12px;
+    }
+    .auth-container .switch { text-align: center; font-size: 0.9rem; color: #666; }
+    .auth-container .switch a { color: #1a1a2e; cursor: pointer; text-decoration: underline; }
+    .msg { text-align: center; margin-top: 10px; font-size: 0.9rem; min-height: 18px; }
+    .msg.error { color: #e74c3c; }
+    .msg.success { color: #27ae60; }
+
+    /* MAIN */
+    .main-container { max-width: 1100px; margin: 32px auto; padding: 0 20px; }
+
+    /* ALBUMS */
+    .section-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 20px;
+    }
+    .section-header h2 { font-size: 1.2rem; color: #1a1a2e; }
+    button.primary {
+      background: #1a1a2e; color: white; border: none;
+      padding: 9px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+    }
+    button.primary:hover { background: #16213e; }
+    button.danger {
+      background: #e74c3c; color: white; border: none;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    }
+    button.secondary {
+      background: #eee; color: #333; border: none;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    }
+
+    .albums-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .album-card {
+      background: white; border-radius: 10px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer;
+      transition: transform 0.2s; position: relative;
+    }
+    .album-card:hover { transform: translateY(-3px); }
+    .album-card h3 { font-size: 1rem; margin-bottom: 6px; }
+    .album-card .meta { font-size: 0.78rem; color: #888; }
+    .album-card .role-badge {
+      display: inline-block; margin-top: 8px;
+      padding: 2px 8px; border-radius: 12px; font-size: 0.72rem;
+      background: #e8f4fd; color: #2980b9;
+    }
+    .album-card .actions {
+      position: absolute; top: 10px; right: 10px;
+      display: flex; gap: 6px;
+    }
+
+    /* PHOTOS PAGE */
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      cursor: pointer; color: #1a1a2e; margin-bottom: 20px;
+      font-size: 0.95rem; font-weight: 500;
+    }
+    .back-btn:hover { text-decoration: underline; }
+
+    .album-header {
+      background: white; border-radius: 10px; padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .album-header h2 { font-size: 1.3rem; color: #1a1a2e; }
+    .album-header .album-meta { font-size: 0.85rem; color: #888; margin-top: 4px; }
+    .album-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* UPLOAD */
+    .upload-box {
+      background: white; border-radius: 10px; padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 24px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .upload-box input[type="file"] { flex: 1; }
+    #uploadStatus { font-size: 0.88rem; }
+
+    /* PHOTOS GRID */
+    .photos-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .photo-card {
+      background: white; border-radius: 10px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); transition: transform 0.2s;
+    }
+    .photo-card:hover { transform: translateY(-3px); }
+    .photo-card img { width: 100%; height: 160px; object-fit: cover; display: block; }
+    .photo-card .photo-info { padding: 10px 12px; }
+    .photo-card .photo-name { font-size: 0.78rem; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .photo-card .photo-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+    /* MEMBERS */
+    .members-section {
+      background: white; border-radius: 10px; padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-top: 24px;
+    }
+    .members-section h3 { margin-bottom: 14px; font-size: 1rem; color: #1a1a2e; }
+    .invite-form { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .invite-form input {
+      flex: 1; padding: 8px 12px;
+      border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem;
+    }
+    .invite-form select {
+      padding: 8px 12px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 0.9rem;
+    }
+    .member-list { display: flex; flex-direction: column; gap: 8px; }
+    .member-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: #f8f9fa; border-radius: 8px;
+    }
+    .member-item .member-name { font-size: 0.9rem; font-weight: 500; }
+    .member-item .member-role { font-size: 0.8rem; color: #888; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: white; border-radius: 12px; padding: 32px;
+      min-width: 320px; max-width: 440px; width: 90%;
+    }
+    .modal h3 { margin-bottom: 18px; color: #1a1a2e; }
+    .modal input, .modal select {
+      width: 100%; padding: 10px 14px; margin-bottom: 12px;
+      border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem;
+    }
+    .modal .modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+    .modal .modal-actions button { flex: 1; padding: 10px; border-radius: 8px; cursor: pointer; border: none; font-size: 0.95rem; }
+    .modal .modal-actions .btn-confirm { background: #1a1a2e; color: white; }
+    .modal .modal-actions .btn-cancel { background: #eee; color: #333; }
+
+    .empty-state { text-align: center; color: #aaa; padding: 60px 0; font-size: 1rem; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar" style="display:none">
+  <h1>📷 Photo Gallery</h1>
+  <div class="user-info">
+    <span id="navUsername"></span>
+    <button onclick="logout()">Đăng xuất</button>
+  </div>
+</nav>
+
+<!-- PAGE: AUTH -->
+<div id="authPage" class="page active">
+  <div class="auth-container">
+    <h2 id="authTitle">Đăng nhập</h2>
+    <div id="registerFields" style="display:none">
+      <input type="text" id="regUsername" placeholder="Tên đăng nhập"/>
+    </div>
+    <input type="email" id="authEmail" placeholder="Email"/>
+    <input type="password" id="authPassword" placeholder="Mật khẩu"/>
+    <button class="primary" onclick="handleAuth()">Xác nhận</button>
+    <div class="switch" id="authSwitch">
+      Chưa có tài khoản? <a onclick="toggleAuthMode()">Đăng ký ngay</a>
+    </div>
+    <div class="msg" id="authMsg"></div>
+  </div>
+</div>
+
+<!-- PAGE: ALBUMS -->
+<div id="albumsPage" class="page">
+  <div class="main-container">
+    <div class="section-header">
+      <h2>Albums của tôi</h2>
+      <button class="primary" onclick="openCreateAlbum()">+ Tạo album</button>
+    </div>
+    <div id="albumsGrid" class="albums-grid"></div>
+    <div id="albumsEmpty" class="empty-state" style="display:none">Chưa có album nào.</div>
+  </div>
+</div>
+
+<!-- PAGE: PHOTOS -->
+<div id="photosPage" class="page">
+  <div class="main-container">
+    <div class="back-btn" onclick="showAlbumsPage()">← Quay lại</div>
+
+    <div class="album-header">
+      <div>
+        <h2 id="albumTitle"></h2>
+        <div class="album-meta" id="albumMeta"></div>
+      </div>
+      <div class="album-actions" id="albumActions"></div>
+    </div>
+
+    <!-- Upload (chỉ hiện với owner/editor) -->
+    <div class="upload-box" id="uploadBox" style="display:none">
+      <input type="file" id="photoFileInput" accept="image/*"/>
+      <button class="primary" onclick="uploadPhoto()">Upload ảnh</button>
+      <span id="uploadStatus"></span>
+    </div>
+
+    <div id="photosGrid" class="photos-grid"></div>
+    <div id="photosEmpty" class="empty-state" style="display:none">Album chưa có ảnh nào.</div>
+
+    <!-- Members (chỉ hiện với owner) -->
+    <div class="members-section" id="membersSection" style="display:none">
+      <h3>👥 Thành viên</h3>
+      <div class="invite-form">
+        <input type="text" id="inviteUsername" placeholder="Tên đăng nhập"/>
+        <select id="inviteRole">
+          <option value="editor">Editor (xem + upload)</option>
+          <option value="viewer">Viewer (xem + tải)</option>
+          <option value="readonly">Read-only (chỉ xem)</option>
+        </select>
+        <button class="primary" onclick="inviteMember()">Mời</button>
+      </div>
+      <div id="memberList" class="member-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Tạo / Đổi tên album -->
+<div class="modal-overlay" id="albumModal">
+  <div class="modal">
+    <h3 id="modalTitle">Tạo album mới</h3>
+    <input type="text" id="modalAlbumName" placeholder="Tên album"/>
+    <select id="modalAlbumPublic">
+      <option value="false">🔒 Riêng tư</option>
+      <option value="true">🌐 Công khai</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Huỷ</button>
+      <button class="btn-confirm" onclick="confirmAlbumModal()">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://photo-gallery-backend-cj7u.onrender.com';
+let token = localStorage.getItem('token');
+let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+let currentAlbum = null;
+let isLoginMode = true;
+let editingAlbumId = null;
+
+// ========== AUTH ==========
+function toggleAuthMode() {
+  isLoginMode = !isLoginMode;
+  document.getElementById('authTitle').textContent = isLoginMode ? 'Đăng nhập' : 'Đăng ký';
+  document.getElementById('registerFields').style.display = isLoginMode ? 'none' : 'block';
+  document.getElementById('authSwitch').innerHTML = isLoginMode
+    ? 'Chưa có tài khoản? <a onclick="toggleAuthMode()">Đăng ký ngay</a>'
+    : 'Đã có tài khoản? <a onclick="toggleAuthMode()">Đăng nhập</a>';
+  document.getElementById('authMsg').textContent = '';
+}
+
+async function handleAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const msg = document.getElementById('authMsg');
+  msg.className = 'msg';
+
+  if (!email || !password) {
+    msg.textContent = 'Vui lòng điền đầy đủ thông tin'; msg.className = 'msg error'; return;
+  }
+
+  try {
+    let body, url;
+    if (isLoginMode) {
+      url = '/api/auth/login';
+      body = { email, password };
+    } else {
+      const username = document.getElementById('regUsername').value.trim();
+      if (!username) { msg.textContent = 'Thiếu tên đăng nhập'; msg.className = 'msg error'; return; }
+      url = '/api/auth/register';
+      body = { username, email, password };
+    }
+
+    const res = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(currentUser));
+    showAlbumsPage();
+  } catch (err) {
+    msg.textContent = err.message; msg.className = 'msg error';
+  }
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('token'); localStorage.removeItem('user');
+  showPage('authPage');
+  document.getElementById('navbar').style.display = 'none';
+}
+
+// ========== PAGES ==========
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+}
+
+function showAlbumsPage() {
+  showPage('albumsPage');
+  document.getElementById('navbar').style.display = 'flex';
+  document.getElementById('navUsername').textContent = `👤 ${currentUser.username}`;
+  loadAlbums();
+}
+
+// ========== ALBUMS ==========
+async function loadAlbums() {
+  try {
+    const res = await fetch('/api/albums', { headers: { Authorization: `Bearer ${token}` } });
+    const albums = await res.json();
+    const grid = document.getElementById('albumsGrid');
+    const empty = document.getElementById('albumsEmpty');
+
+    if (albums.length === 0) {
+      grid.innerHTML = ''; empty.style.display = 'block'; return;
+    }
+    empty.style.display = 'none';
+    grid.innerHTML = albums.map(a => `
+      <div class="album-card" onclick="openAlbum(${a.id}, '${a.name}', '${a.my_role}', ${a.is_public})">
+        <div class="actions" onclick="event.stopPropagation()">
+          ${a.my_role === 'owner' ? `
+            <button class="secondary" onclick="openEditAlbum(${a.id}, '${a.name}', ${a.is_public})">✏️</button>
+            <button class="danger" onclick="deleteAlbum(${a.id})">🗑</button>
+          ` : ''}
+        </div>
+        <h3>${a.name}</h3>
+        <div class="meta">Chủ: ${a.owner_name}</div>
+        <div class="meta">${a.is_public ? '🌐 Công khai' : '🔒 Riêng tư'}</div>
+        <span class="role-badge">${a.my_role}</span>
+      </div>
+    `).join('');
+  } catch (err) { console.error(err); }
+}
+
+function openCreateAlbum() {
+  editingAlbumId = null;
+  document.getElementById('modalTitle').textContent = 'Tạo album mới';
+  document.getElementById('modalAlbumName').value = '';
+  document.getElementById('modalAlbumPublic').value = 'false';
+  document.getElementById('albumModal').classList.add('active');
+}
+
+function openEditAlbum(id, name, isPublic) {
+  editingAlbumId = id;
+  document.getElementById('modalTitle').textContent = 'Đổi tên album';
+  document.getElementById('modalAlbumName').value = name;
+  document.getElementById('modalAlbumPublic').value = String(isPublic);
+  document.getElementById('albumModal').classList.add('active');
+}
+
+function closeModal() { document.getElementById('albumModal').classList.remove('active'); }
+
+async function confirmAlbumModal() {
+  const name = document.getElementById('modalAlbumName').value.trim();
+  const is_public = document.getElementById('modalAlbumPublic').value === 'true';
+  if (!name) return;
+
+  try {
+    const url = editingAlbumId ? `/api/albums/${editingAlbumId}` : '/api/albums';
+    const method = editingAlbumId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ name, is_public }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error);
+    closeModal(); loadAlbums();
+  } catch (err) { alert(err.message); }
+}
+
+async function deleteAlbum(id) {
+  if (!confirm('Xoá album này? Tất cả ảnh sẽ bị xoá!')) return;
+  try {
+    await fetch(`/api/albums/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    loadAlbums();
+  } catch (err) { alert(err.message); }
+}
+
+// ========== PHOTOS ==========
+async function openAlbum(id, name, role, isPublic) {
+  currentAlbum = { id, name, role, isPublic };
+  showPage('photosPage');
+
+  document.getElementById('albumTitle').textContent = name;
+  document.getElementById('albumMeta').textContent =
+    `${isPublic ? '🌐 Công khai' : '🔒 Riêng tư'} • Role của bạn: ${role}`;
+
+  // Nút actions
+  const actions = document.getElementById('albumActions');
+  actions.innerHTML = role === 'owner' ? `
+    <button class="secondary" onclick="openEditAlbum(${id}, '${name}', ${isPublic})">✏️ Đổi tên</button>
+  ` : '';
+
+  // Upload box
+  document.getElementById('uploadBox').style.display =
+    ['owner', 'editor'].includes(role) ? 'flex' : 'none';
+
+  // Members section
+  document.getElementById('membersSection').style.display =
+    role === 'owner' ? 'block' : 'none';
+
+  loadPhotos();
+  if (role === 'owner') loadMembers();
+}
+
+async function loadPhotos() {
+  try {
+    const res = await fetch(`/api/photos/${currentAlbum.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const photos = await res.json();
+    const grid = document.getElementById('photosGrid');
+    const empty = document.getElementById('photosEmpty');
+
+    if (photos.length === 0) {
+      grid.innerHTML = ''; empty.style.display = 'block'; return;
+    }
+    empty.style.display = 'none';
+
+    const role = currentAlbum.role;
+    grid.innerHTML = photos.map(p => `
+      <div class="photo-card">
+        <img src="${p.url}" alt="${p.filename}" loading="lazy"/>
+        <div class="photo-info">
+          <div class="photo-name">${p.filename}</div>
+          <div class="photo-actions">
+            ${['owner', 'editor', 'viewer'].includes(role) ? `
+              <button class="secondary" onclick="downloadPhoto(${currentAlbum.id}, ${p.id})">⬇ Tải</button>
+            ` : ''}
+            ${role === 'owner' ? `
+              <button class="danger" onclick="deletePhoto(${p.id})">🗑</button>
+              <button class="secondary" onclick="movePhoto(${p.id})">📁 Chuyển</button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) { console.error(err); }
+}
+
+async function uploadPhoto() {
+  const file = document.getElementById('photoFileInput').files[0];
+  const status = document.getElementById('uploadStatus');
+  if (!file) { status.textContent = 'Chọn ảnh trước!'; return; }
+
+  status.textContent = 'Đang upload...';
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  try {
+    const res = await fetch(`/api/photos/${currentAlbum.id}/upload`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    status.textContent = 'Upload thành công ✅';
+    document.getElementById('photoFileInput').value = '';
+    loadPhotos();
+  } catch (err) { status.textContent = 'Lỗi: ' + err.message; }
+}
+
+async function downloadPhoto(albumId, photoId) {
+  try {
+    const res = await fetch(`/api/photos/${albumId}/${photoId}/download`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    window.open(data.url, '_blank');
+  } catch (err) { alert('Lỗi tải ảnh: ' + err.message); }
+}
+
+async function deletePhoto(photoId) {
+  if (!confirm('Xoá ảnh này?')) return;
+  try {
+    await fetch(`/api/photos/${currentAlbum.id}/${photoId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+    });
+    loadPhotos();
+  } catch (err) { alert(err.message); }
+}
+
+async function movePhoto(photoId) {
+  const targetId = prompt('Nhập ID album đích:');
+  if (!targetId) return;
+  try {
+    const res = await fetch(`/api/photos/${currentAlbum.id}/${photoId}/move`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ targetAlbumId: parseInt(targetId) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    alert('Chuyển ảnh thành công!');
+    loadPhotos();
+  } catch (err) { alert('Lỗi: ' + err.message); }
+}
+
+// ========== MEMBERS ==========
+async function loadMembers() {
+  try {
+    const res = await fetch(`/api/albums/${currentAlbum.id}/members`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const members = await res.json();
+    document.getElementById('memberList').innerHTML = members.map(m => `
+      <div class="member-item">
+        <div>
+          <div class="member-name">${m.username}</div>
+          <div class="member-role">${m.role}</div>
+        </div>
+        ${m.role !== 'owner' ? `
+          <button class="danger" onclick="removeMember(${m.user_id})">Xoá</button>
+        ` : ''}
+      </div>
+    `).join('');
+  } catch (err) { console.error(err); }
+}
+
+async function inviteMember() {
+  const username = document.getElementById('inviteUsername').value.trim();
+  const role = document.getElementById('inviteRole').value;
+  if (!username) return;
+
+  try {
+    const res = await fetch(`/api/albums/${currentAlbum.id}/members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ username, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    document.getElementById('inviteUsername').value = '';
+    loadMembers();
+  } catch (err) { alert('Lỗi: ' + err.message); }
+}
+
+async function removeMember(userId) {
+  if (!confirm('Xoá thành viên này?')) return;
+  try {
+    await fetch(`/api/albums/${currentAlbum.id}/members/${userId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+    });
+    loadMembers();
+  } catch (err) { alert(err.message); }
+}
+
+// ========== INIT ==========
+if (token && currentUser) {
+  showAlbumsPage();
+} else {
+  showPage('authPage');
+}
+</script>
+</body>
+</html>
