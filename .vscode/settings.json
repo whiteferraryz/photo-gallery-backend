@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "photo-gallery-db",
+            "database": "photo_gallery_db_w9h7",
+            "username": "photo_gallery_db_w9h7_user"
+        }
+    ]
+}
