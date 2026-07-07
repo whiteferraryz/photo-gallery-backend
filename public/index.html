@@ -277,7 +277,7 @@
 </div>
 
 <script>
-const API = 'https://photo-gallery-backend-cj7u.onrender.com';
+const API = '';
 let token = localStorage.getItem('token');
 let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
 let currentAlbum = null;
@@ -531,21 +531,46 @@ async function deletePhoto(photoId) {
 }
 
 async function movePhoto(photoId) {
-  const targetId = prompt('Nhập ID album đích:');
-  if (!targetId) return;
+  // Lấy danh sách album của user
+  const res = await fetch(`${API}/api/albums`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const albums = await res.json();
+
+  // Lọc bỏ album hiện tại
+  const otherAlbums = albums.filter(a => a.id !== currentAlbum.id);
+
+  if (otherAlbums.length === 0) {
+    alert('Bạn không có album nào khác để chuyển!');
+    return;
+  }
+
+  // Tạo options cho confirm
+  const options = otherAlbums.map((a, i) => `${i + 1}. ${a.name} (ID: ${a.id})`).join('\n');
+  const choice = prompt(`Chọn album đích (nhập số thứ tự):\n${options}`);
+  
+  if (!choice) return;
+  const index = parseInt(choice) - 1;
+  if (index < 0 || index >= otherAlbums.length) {
+    alert('Lựa chọn không hợp lệ!'); return;
+  }
+
+  const targetAlbumId = otherAlbums[index].id;
+
   try {
-    const res = await fetch(`/api/photos/${currentAlbum.id}/${photoId}/move`, {
+    const res2 = await fetch(`${API}/api/photos/${currentAlbum.id}/${photoId}/move`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ targetAlbumId: parseInt(targetId) }),
+      body: JSON.stringify({ targetAlbumId }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    const data = await res2.json();
+    if (!res2.ok) throw new Error(data.error);
     alert('Chuyển ảnh thành công!');
     loadPhotos();
-  } catch (err) { alert('Lỗi: ' + err.message); }
+  } catch (err) {
+    alert('Lỗi: ' + err.message);
+  }
 }
-
 // ========== MEMBERS ==========
 async function loadMembers() {
   try {
